@@ -1,28 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Castle, Heart, DoorOpen, Moon, Flower2, Gamepad2, Stars, LogOut, BedDouble, Volume2, UserRound, X } from 'lucide-react';
-import CastleWorld from './components/CastleWorld.jsx';
-import { cloudEnabled, supabase } from './lib/supabase.js';
-
-const rooms = [
-  {id:'kitchen',name:'آشپزخانه‌ی کوچولو',icon:Flower2,note:'آشپزی و دستورهای مشترک'},
-  {id:'games',name:'سرزمین بازی',icon:Gamepad2,note:'بازی‌ها و چالش‌های دونفره'},
-  {id:'love',name:'نامه‌های عاشقانه',icon:Heart,note:'نامه‌ها، عکس‌ها و خاطرات'},
-  {id:'garden',name:'باغ آسمونی',icon:Flower2,note:'گل‌کاری، برکه و چهار فصل'},
-  {id:'bedroom',name:'اتاق دنج',icon:Moon,note:'تخت ابری و بالکن ستاره‌ها'},
-  {id:'wishes',name:'برج آرزوها',icon:Stars,note:'دفتر آرزوهای شخصی و مشترک'},
-];
-function Intro({onEnter}){return <main className="intro"><div className="intro-stars">✦　✧　　　 ✧　✦</div><div className="intro-card"><div className="crest"><Castle size={36}/></div><p className="eyebrow">A LITTLE WORLD FOR TWO</p><h1>Welcome to home</h1><p className="intro-copy">سلام خانم جان! به دنیای کوچولوی خودت خوش اومدی.</p><p className="muted">اینجا خونه‌ی شماست؛ جایی برای گشت‌وگذار، بازی، ساختن خاطره و آرزوهای تازه.</p><button className="primary" onClick={onEnter}>بریم خونه‌مون؟ <DoorOpen size={18}/></button><p className="intro-foot">قلعه‌ی کوچک نگار و آوین</p></div><div className="intro-hill hill1"/><div className="intro-hill hill2"/></main>}
-function AuthPanel({onClose,onAuthed}){
- const [mode,setMode]=useState('login'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- async function submit(e){e.preventDefault();if(!supabase){setMessage('اتصال ابری هنوز تنظیم نشده؛ این نسخه فعلاً در حالت پیش‌نمایش محلی است.');return;}setBusy(true);setMessage('');const result=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password});setBusy(false);if(result.error)setMessage(result.error.message);else if(result.data.session)onAuthed(result.data.session.user);else setMessage('حساب ساخته شد؛ در صورت فعال بودن تأیید ایمیل، صندوق ایمیلت را بررسی کن.');}
- return <div className="modal-backdrop"><form className="modal auth-modal" onSubmit={submit}><button type="button" className="close" onClick={onClose}><X size={18}/></button><div className="modal-icon"><UserRound/></div><h3>ورود به خانه‌ی خودت</h3><p className="muted">هر نفر با حساب مستقل خودش وارد می‌شود.</p><label>ایمیل<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} dir="ltr" placeholder="name@example.com"/></label><label>رمز عبور<input type="password" required minLength="6" value={password} onChange={e=>setPassword(e.target.value)} dir="ltr" placeholder="حداقل ۶ نویسه"/></label><button className="primary full" disabled={busy}>{busy?'لطفاً صبر کن…':mode==='login'?'ورود':'ساخت حساب'}</button><button type="button" className="text-btn" onClick={()=>{setMode(mode==='login'?'signup':'login');setMessage('')}}>{mode==='login'?'حساب نداری؟ ثبت‌نام کن':'قبلاً حساب ساختی؟ وارد شو'}</button>{message&&<p className="form-message">{message}</p>}{!cloudEnabled&&<p className="form-message warning">برای حساب واقعی، اطلاعات پروژه‌ی Supabase باید تنظیم شود.</p>}</form></div>;
-}
-function RoomPanel({room,onBack}){const Icon=room.icon;return <div className="room-panel"><button className="back" onClick={onBack}>بازگشت به تالار ←</button><div className="room-art"><Icon size={38}/></div><p className="eyebrow">OUR LITTLE CASTLE</p><h2>{room.name}</h2><p>{room.note}</p><p className="muted">دروازه‌ی این اتاق در محوطه‌ی سه‌بعدی قرار دارد. فضای اختصاصی و بازی‌های تعاملی اتاق‌ها در فاز بعد ساخته می‌شوند؛ فعلاً می‌توانی آزادانه در محوطه قدم بزنی و دروازه‌ها را امتحان کنی.</p><button className="secondary" onClick={onBack}>برگشت به گشت‌وگذار</button></div>}
-export default function App(){
- const [entered,setEntered]=useState(false),[activeRoom,setActiveRoom]=useState(null),[exitChoice,setExitChoice]=useState(false),[authOpen,setAuthOpen]=useState(false),[sessionUser,setSessionUser]=useState(null),[sound,setSound]=useState(false);
- useEffect(()=>{if(!supabase)return;supabase.auth.getSession().then(({data})=>setSessionUser(data.session?.user||null));const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setSessionUser(session?.user||null));return()=>subscription.unsubscribe()},[]);
- async function leave(status){setExitChoice(false);setActiveRoom(null);setEntered(false);if(supabase&&sessionUser)await supabase.from('user_presence').upsert({user_id:sessionUser.id,status,last_seen_at:new Date().toISOString()},{onConflict:'user_id'});}
- if(!entered)return <Intro onEnter={()=>setEntered(true)}/>;
- return <main className="world-shell"><div className="scene"><CastleWorld rooms={rooms} onChooseRoom={id=>setActiveRoom(rooms.find(r=>r.id===id))}/></div><header className="hud"><div className="brand"><Castle size={20}/><span>Our Little Castle</span></div><div className="user-tools"><span className="online-dot"/><span className="small">{sessionUser?'حساب متصل':'پیش‌نمایش محلی'}</span><button className="icon-btn" onClick={()=>setAuthOpen(true)} title="ورود به حساب"><Heart size={17}/></button></div></header>{activeRoom&&<RoomPanel room={activeRoom} onBack={()=>setActiveRoom(null)}/>}<section className="room-dock"><div className="dock-title"><span>خانه‌ی کوچولومون</span><span className="muted">برای ورود، نزدیک دروازه برو یا اتاق را انتخاب کن</span></div><div className="room-grid">{rooms.map(r=><button key={r.id} className="room-card" onClick={()=>setActiveRoom(r)}><r.icon size={21}/><b>{r.name}</b><small>{r.note}</small></button>)}</div></section><footer className="bottom-bar"><span className="pet">🐈 موچی در محوطه می‌چرخه</span><div className="bottom-actions"><button onClick={()=>setSound(!sound)}><Volume2 size={16}/>{sound?'صدا روشن':'صدا خاموش'}</button><button onClick={()=>setExitChoice(true)}><LogOut size={16}/> خروج</button></div></footer><div className="movement-hint">حرکت: کلیدهای WASD یا جهت‌ها · موبایل: جوی‌استیک · تعامل: نزدیک دروازه</div>
- {exitChoice&&<div className="modal-backdrop"><div className="modal"><h3>قبل از رفتن...</h3><p>دوست داری شخصیتت چه وضعیتی داشته باشه؟</p><button className="primary full" onClick={()=>leave('sleep')}><BedDouble size={17}/> برم بخوابم</button><button className="secondary full" onClick={()=>leave('away')}>از قلعه خارج بشم</button><button className="text-btn" onClick={()=>setExitChoice(false)}>انصراف</button></div></div>}{authOpen&&<AuthPanel onClose={()=>setAuthOpen(false)} onAuthed={u=>{setSessionUser(u);setAuthOpen(false)}}/>}{!cloudEnabled&&<div className="dev-note">پیش‌نمایش محلی · همگام‌سازی ابری پس از تنظیم Supabase فعال می‌شود</div>}</main>;
+export default function App() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'grid',
+      placeItems: 'center',
+      background: '#f4f0fb',
+      color: '#5c4c79',
+      fontSize: '32px',
+      fontWeight: 'bold'
+    }}>
+      OUR LITTLE CASTLE
+    </div>
+  );
 }
