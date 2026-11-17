@@ -38,3 +38,5 @@ npm run dev
 5. Insert each account's profile row with its matching `auth.users.id` and the exact display name (`نگار` or `آوین`). Never expose a service-role key in the browser.
 
 The current schema is a starter for two explicitly authorized accounts, not a complete invitation/pairing model. The broad authenticated read policies are suitable only for a private project where exactly the two intended accounts are provisioned; before public deployment, replace them with a pair-membership table and membership-based RLS.
+
+Build update - November 17
